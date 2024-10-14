@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "stdint.h": "c",
+        "string.h": "c",
+        "hmac_sha1.h": "c"
+    }
+}
