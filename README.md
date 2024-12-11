@@ -2,7 +2,11 @@
 
 Toy TOTP (Time-Based One-Time password) authenticator written in x86-64 assembly language.
 
-This project is a learning exercise in x86-64 assembly language. It should not be considered fit for use in any capacity.
+This project is a learning exercise in cryptography and x86-64 assembly language.
+<br />
+It should NOT be considered fit for use in any capacity.
+<br />
+It should NOT be used in place of a genuine authenticator app.
 
 
 ## Overview
@@ -16,7 +20,7 @@ This project comprises two executables `totpfoo` and `totpgen`, both powered by 
 
 ## TOTP authenticator usage
 
-The default TOTP parameters are:
+The default toy TOTP parameters are:
 ```
 SECRET ASCII: 12345678901234567890
       BASE32: GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ
@@ -25,7 +29,7 @@ PERIOD: 30
 ALGORITHM: SHA1
 ```
 
-The default TOTP password is:
+The default toy TOTP password is:
 ```
 SaturnV
 ```
@@ -35,14 +39,14 @@ Build `totpfoo` with `make`, the executable relative path is `build/bin/`:
 $ make totp
 ```
 
-Generate a TOTP code using the password:
+Generate a toy TOTP code using the password:
 ```
 $ ./build/bin/totpfoo SaturnV
 ```
 
 This assumes that the system clock is accurate.
 
-This TOTP code can be tested via an online generator using our default parameters.
+As the toy default parameters are not secret, the TOTP output codes can be tested via an online generator using said parameters.
 
 https://piellardj.github.io/totp-generator/?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&digits=8&period=30&algorithm=SHA-1
 
@@ -51,7 +55,7 @@ NB. Do NOT divulge any private keys online in this manner. Keep private keys sec
 
 ## TOTP authenticator generator usage
 
-The default TOTP parameters are defined in `totp-gen.c#main`.:
+The default toy TOTP parameters are defined in `totp-gen.c#main`.:
 
 `totp_gen` 
 ```C
@@ -81,10 +85,12 @@ Build `totp_foo` with `make`, the executable relative path is `build/bin/`:
 $ make totp
 ```
 
+NB. This is a toy TOTP generator, it should NOT be used in place of a genuine authenticator app.
+
 
 ## Parameter block encryption
 
-The encrypted TOTP parameter block `totp_blk.hex` is defined as:
+The encrypted toy TOTP parameter block `totp_blk.hex` is defined as:
 
 ```C
 typedef struct __attribute__((packed))
