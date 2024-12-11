@@ -1,6 +1,6 @@
 # the_kings_head
 
-Toy TOTP (Time-Based One-Time password) authenticator written in x86-64 assembly language.
+Toy TOTP (Time-Based One-Time password) authenticator with an x86-64 assembly language (System V ABI) backend.
 
 This project is a learning exercise in cryptography and x86-64 assembly language.
 
@@ -17,6 +17,11 @@ This project comprises two executables `totpfoo` and `totpgen`, both powered by 
 
 `totpgen` generates encrypted TOTP parameters used in the compilation of `totpfoo`.
 
+The library backend `libkth` is written in x86-64 assembly language (System V ABI).
+
+The project was developed and tested on an Ubuntu 24-04 box.
+
+The project will NOT work with Windows.
 
 ## TOTP authenticator usage
 
