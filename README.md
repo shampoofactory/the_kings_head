@@ -137,7 +137,7 @@ TAG = HMAC DIGEST
 
 ## X86-64 components
 
-X64-64 components:
+X64-64 (System V ABI) components:
 - AES256 OFB
 - SHA1
 - HMAC SHA1
