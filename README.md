@@ -60,6 +60,8 @@ NB. Do NOT divulge any private keys online in this manner. Keep private keys sec
 
 ## TOTP authenticator generator usage
 
+NB. This is a toy TOTP generator, it should NOT be used in place of a genuine authenticator app.
+
 The default toy TOTP parameters are defined in `totp-gen.c#main`.:
 
 `totp_gen` 
@@ -89,8 +91,6 @@ Build `totp_foo` with `make`, the executable relative path is `build/bin/`:
 ```
 $ make totp
 ```
-
-NB. This is a toy TOTP generator, it should NOT be used in place of a genuine authenticator app.
 
 
 ## Parameter block encryption
