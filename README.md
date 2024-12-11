@@ -3,9 +3,9 @@
 Toy TOTP (Time-Based One-Time password) authenticator written in x86-64 assembly language.
 
 This project is a learning exercise in cryptography and x86-64 assembly language.
-<br />
+
 It should NOT be considered fit for use in any capacity.
-<br />
+
 It should NOT be used in place of a genuine authenticator app.
 
 
