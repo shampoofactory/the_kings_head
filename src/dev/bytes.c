@@ -1,5 +1,7 @@
 #include "bytes.h"
 
+#include <string.h>
+
 static uint8_t decimal(char c)
 {
     static const uint8_t LUT[256] =

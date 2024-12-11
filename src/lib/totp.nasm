@@ -5,20 +5,19 @@
         global      totp_div_30
         global      totp_div
 
-        section     .data align=0x10
-
         section     .text
 
-extern  hmac_sha1
+extern  hmac_sha1_update
+extern  hmac_sha1_final
 
 
 ; Compute a HOTP value ASCII string
-; 
+;
 ; RFC4226#section-5.3
 ;
 ; Pseudocode:
 ; dst = Integer.toString(Snum mod 10^Digit)
-; 
+;
 ; Parameters:
 ;      dst: n_digits length destination buffer
 ;        v: Snum
@@ -71,43 +70,39 @@ totp_div_30:
 ; RFC4226#section-5.3
 ;
 ; Pseudocode:
-; HS = HMAC-SHA-1(K, T) 
+; HS = HMAC-SHA-1(K, T)
 ; Sbits = DT(HS) // Dynamic Truncation
 ; Snum  = StToNum(Sbits)
 ; return Snum
 ;
 ; Parameters:
-;      k: key
-;  k_len: key length
-;      t: time/ moving factor
+; key: key
+; key_len: key length
+; time: time/ moving factor
 ;
 ; Return: Snum
 ;
-; uint32_t *(const uint8_t *k, uint32_t k_len, uint64_t t);
+; uint32_t *(HMAC_SHA1_CTX *ctx, uint64_t t);
 totp_sha1_gen:
-        push        rbp                 ; prolog
+        endbr64                             ; CET
+        push        rbp                     ; prolog
         mov         rbp, rsp
-        sub         rsp, 0x20           ; RSP [0x18:0x20] m
-                                        ; RSP [0x00:0x14] hmac
-                                        ; HOTP(K, T)
-        bswap       rdx                 ; factor endianess
-        mov         [rsp + 0x18], rdx   ; save t as m
-        lea         rcx, [rsp + 0x18]   ; *m = &m
-        mov         rdx, rsi            ; k_len = k_len
-        mov         rsi, rdi            ; *k = *k
-        mov         rdi, rsp            ; *hmac = &hmac
-        mov         r8d, 8              ; m_len = 8
-        call        hmac_sha1           ; hmac sha1
-                                        ; DT(HS)
-        mov         cl, [rsp + 0x13]    ; offset
-        and         ecx, 0x0F           ; offset &= 0x0F
-        mov         eax, [rsp + rcx]    ; hmac
-        bswap       eax                 ; factor endianess
-        and         eax, 0x7FFFFFFF     ; mask
-                                        ;
-        vpxor       xmm0, xmm0          ; zero
-        vmovdqa     [rsp], xmm0         ; zero store
-        vmovdqa     [rsp + 0x10], xmm0
-        mov         rsp, rbp            ; epilog
+        sub         rsp, 0x20               ; RSP [0x00:0x14] hmac
+                                            ; RSP [0x18:0x20] message
+                                            ; HOTP(K, T)
+        movbe       [rsp + 0x18], rsi       ; save big endian time message
+        lea         rsi, [rsp + 0x18]       ; &message
+        mov         edx, 8                  ; 8
+        call        hmac_sha1_update        ; call(ctx, &message, 8)
+        mov         rsi, rsp                ; &hmac
+        call        hmac_sha1_final         ; call(ctx, &hmac)
+        mov         ecx, [rsp + 0x13]       ; offset
+        and         ecx, 0x0F               ; offset &= 0x0F
+        movbe       eax, [rsp + rcx]        ; hmac
+        and         eax, 0x7FFFFFFF         ; mask
+        vpxor       xmm8, xmm8              ; zero
+        vmovdqa     [rsp], xmm8             ; zero store
+        vmovdqa     [rsp + 0x10], xmm8
+        mov         rsp, rbp                ; epilog
         pop         rbp
         ret

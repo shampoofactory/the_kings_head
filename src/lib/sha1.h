@@ -1,14 +1,26 @@
 #ifndef SHA1_H_982988038BDE4D84
 #define SHA1_H_982988038BDE4D84
 
+#include <stdbool.h>
 #include <stdint.h>
 
-void sha1_digest(uint8_t md[static 20], const uint8_t *m, uint32_t m_len);
+#define SHA1_BLK_LEN 0x40
 
-void sha1_final(uint8_t md[static 20], const uint8_t *restrict m, uint8_t *restrict blk, uint32_t m_len);
+#define SHA1_MD_LEN 0x14
 
-void sha1_init(uint8_t hash[static 20]);
+typedef struct __attribute__((aligned(16)))
+{
+    uint8_t hash[SHA1_MD_LEN];
+    uint64_t len;
+    uint8_t blk[SHA1_BLK_LEN];
+} SHA1_CTX;
 
-void sha1_transform(uint8_t hash[static 20], const uint8_t *blk, int32_t n_blk);
+void sha1_final(SHA1_CTX *ctx, uint8_t md[static SHA1_MD_LEN]);
+
+void sha1_init(SHA1_CTX *ctx);
+
+bool sha1_update(SHA1_CTX *ctx, const uint8_t *msg, uint64_t msg_len);
+
+void sha1_wipe(SHA1_CTX *ctx);
 
 #endif

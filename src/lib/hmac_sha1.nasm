@@ -1,100 +1,146 @@
-        default     rel
+default rel
 
-        global      hmac_sha1
-
-        section     .data align=0x10
-
-XPAD:   ; IPAD ^ OPAD
-dq      0x6A6A6A6A6A6A6A6A
-dq      0x6A6A6A6A6A6A6A6A
-IPAD:
-dq      0x3636363636363636
-dq      0x3636363636363636
+global  hmac_sha1_init
+global  hmac_sha1_final
+global  hmac_sha1_wipe
+global  hmac_sha1_update
 
 
-        section     .text
+%include "hmac_sha1_ctx.nasm"
+%include "sha1_ctx.nasm"
 
-extern  sha1_digest
+
+section .text
+
 extern  sha1_final
+extern  sha1_final_with_state
 extern  sha1_init
-extern  sha1_transform
+extern  sha1_update
+extern  sha1_update_blk
 
 
-; void *(uint8_t *hmac, const uint8_t *k, uint32_t k_len, const uint8_t *m, uint32_t m_len)
-hmac_sha1:
-        push        rbp                 ; prolog
-        mov         rbp, rsp
-        sub         rsp, 0xB0           ; RSP [0x70:0xB0] blk
-                                        ; RSP [0x60:0x68] *hmac
-                                        ; RSP [0x58:0x60] *m
-                                        ; RSP [0x54:0x58] m_len
-                                        ; RSP [0x40:0x54] imd (inner message digest)
-                                        ; RSP [0x00:0x40] key
-        mov         [rsp + 0x54], r8d   ; save  m_len
-        mov         [rsp + 0x58], rcx   ; save  *m
-        mov         [rsp + 0x60], rdi   ; save  *hmac
-        vpxor       xmm0, xmm0          ; zero
-        vmovdqa     [rsp], xmm0         ; zero key
-        vmovdqa     [rsp + 0x10], xmm0
-        vmovdqa     [rsp + 0x20], xmm0
-        vmovdqa     [rsp + 0x30], xmm0
-        mov         rdi, rsp            ; DI / md = key
-        cmp         edx, 0x40           ; if (k_len <= 0x40)
-        jbe         .short_key          ;   then .short_key
-.long_key:                              ; long key, hash required
-        call        sha1_digest
-        jmp         .cont
-.short_key:                             ; short key
-        mov         ecx, edx            ; set k_len
-        rep         movsb               ; copy k into key
+; void *(HMAC_SHA1_CTX *ctx, const uint8_t *key, uint32_t key_len)
+;
+; OUTPUTS:
+; rdi: original value
+align 0x10
+hmac_sha1_init:
+    endbr64                                         ; CET
+    push        rbp                                 ; prolog
+    mov         rbp, rsp
+    sub         rsp, 0x0040                         ; [0000:0040] tmp_key
+    call        sha1_init                           ; call(ctx)
+    vmovdqa     [rsp], xmm6                         ; zero tmp_key
+    vmovdqa     [rsp + 0x10], xmm6
+    vmovdqa     [rsp + 0x20], xmm6
+    vmovdqa     [rsp + 0x30], xmm6
+    cmp         edx, 0x40                           ; if (k_len <= 0x40)
+    jbe         .short_key                          ;   then .short_key
+.long_key:                                          ; long key, hash key into tmp_key
+    call        sha1_update                         ; call(ctx, key, key_len)
+    mov         rsi, rsp                            ; &tmp
+    call        sha1_final                          ; call(ctx, &tmp)
+    jmp         .cont
+.short_key:                                         ; short key, copy key into tmp_key
+    mov         rax, rdi                            ; save ctx
+    mov         rdi, rsp                            ; dst = &tmp_key
+    mov         ecx, edx                            ; count = key_len
+    rep         movsb                               ; copy
+    mov         rdi, rax                            ; ctx
 .cont:
-        vmovdqa     xmm3, [IPAD]        ; load IPAD
-        vpxor       xmm0, xmm3, [rsp]   ; key  ^ IPAD
-        vmovdqa     [rsp], xmm0
-        vpxor       xmm1, xmm3, [rsp + 0x10]    ; key  ^ IPAD
-        vmovdqa     [rsp + 0x10], xmm1
-        vpxor       xmm2, xmm3, [rsp + 0x20]    ; key  ^ IPAD
-        vmovdqa     [rsp + 0x20], xmm2
-        vpxor       xmm3, xmm3, [rsp + 0x30]    ; key  ^ IPAD
-        vmovdqa     [rsp + 0x30], xmm3
-        lea         rdi, [rsp + 0x40]   ; md = imd
-        call        sha1_init           ; sha1 init
-        mov         rsi, rsp            ; blk = key ^ IPAD
-        mov         edx, 1              ; n_blk = 1
-        call        sha1_transform      ; sha1 transform: key ^ IPAD
-        mov         rsi, [rsp + 0x58]   ; blk = *m
-        mov         edx, [rsp + 0x54]   ; load m_len
-        mov         r8d, edx            ; copy m_len
-        shr         edx, 6              ; n_blk  = m_len / 64
-        call        sha1_transform      ; sha1 transform: complete message blocks
-        lea         rdx, [rsp + 0x70]   ; blk
-        lea         ecx, [r8d + 0x40]   ; m_len = m_len + 0x40
-        call        sha1_final          ; sha1 final
-        vmovdqa     xmm3, [XPAD]        ; load XPAD
-        vpxor       xmm0, xmm3, [rsp]   ; key  ^ XPAD (key ^ OPAD)
-        vmovdqa     [rsp], xmm0
-        vpxor       xmm1, xmm3, [rsp + 0x10]    ; key  ^ XPAD (key ^ OPAD)
-        vmovdqa     [rsp + 0x10], xmm1
-        vpxor       xmm2, xmm3, [rsp + 0x20]    ; key  ^ XPAD (key ^ OPAD)
-        vmovdqa     [rsp + 0x20], xmm2
-        vpxor       xmm3, xmm3, [rsp + 0x30]    ; key  ^ XPAD (key ^ OPAD)
-        vmovdqa     [rsp + 0x30], xmm3
-        mov         rdi, [rsp + 0x60]   ; md = *hmac
-        call        sha1_init           ; sha1 init
-        mov         rsi, rsp            ; blk = (key ^ OPAD) | imd
-        mov         edx, 1
-        call        sha1_transform      ; sha1 transform: key ^ IPAD
-        lea         rdx, [rsp + 0x70]   ; blk
-        mov         ecx, 0x54           ; m_len = 0x54
-        call        sha1_final          ; sha1 final
-        vpxor       xmm0, xmm0          ; zero
-        vmovdqa     [rsp], xmm0         ; zero key, imd and store
-        vmovdqa     [rsp + 0x10], xmm0
-        vmovdqa     [rsp + 0x20], xmm0
-        vmovdqa     [rsp + 0x30], xmm0
-        vmovdqa     [rsp + 0x40], xmm0
-        vmovdqa     [rsp + 0x50], xmm0  
-        vmovdqa     [rsp + 0x60], xmm0  
-        mov         rsp, rbp            ; epilog
-        pop         rbp
-        ret
+    vmovdqa     xmm2, [hmac_sha1_OPAD]              ; OPAD
+    vpxor       xmm3, xmm2, [rsp]                   ; load tmp_key ^ IPAD
+    vpxor       xmm4, xmm2, [rsp + 0x10]
+    vpxor       xmm5, xmm2, [rsp + 0x20]
+    vpxor       xmm6, xmm2, [rsp + 0x30]
+    vmovdqa     [rsp], xmm3                         ; save tmp_key ^ IPAD
+    vmovdqa     [rsp + 0x10], xmm4
+    vmovdqa     [rsp + 0x20], xmm5
+    vmovdqa     [rsp + 0x30], xmm6
+    mov         rsi, rsp                            ; &tmp_key
+    mov         edx, 1                              ; 1
+    call        sha1_update_blk                     ; call(ctx, &tmp_key, 1)
+    vmovdqu     [rdi + hmac_sha1_CTX.ovar], xmm0    ; save H(opad ^ key) working variables
+    vpextrd     [rdi + hmac_sha1_CTX.ovar + 0x10], xmm1, 3
+    vmovdqa     [rdi + sha1_ITX.var], xmm10         ; save initial state
+    vmovdqa     [rdi + sha1_ITX.var + 0x10], xmm11
+    vmovdqa     xmm2, [hmac_sha1_XPAD]              ; XPAD (IPAD ^ OPAD)
+    vpxor       xmm3, xmm2, [rsp]                   ; tmp_key ^ OPAD
+    vpxor       xmm4, xmm2, [rsp + 0x10]
+    vpxor       xmm5, xmm2, [rsp + 0x20]
+    vpxor       xmm6, xmm2, [rsp + 0x30]
+    vmovdqa     [rsp], xmm3                         ; save tmp_key ^ IPAD
+    vmovdqa     [rsp + 0x10], xmm4
+    vmovdqa     [rsp + 0x20], xmm5
+    vmovdqa     [rsp + 0x30], xmm6
+    mov         rsi, rsp                            ; &tmp_key
+    mov         edx, 1                              ; 1
+    call        sha1_update_blk                     ; call(ctx, &tmp_key, 1)
+    vmovdqa     [rdi + hmac_sha1_CTX.ivar], xmm0    ; save H(ipad ^ key) working variables
+    vpextrd     [rdi + hmac_sha1_CTX.ivar + 0x10], xmm1, 3
+    vpxor       xmm0, xmm0                          ; zero
+    vmovdqa     [rsp], xmm0                         ; zero tmp_key
+    vmovdqa     [rsp + 0x10], xmm0
+    vmovdqa     [rsp + 0x20], xmm0
+    vmovdqa     [rsp + 0x30], xmm0
+    mov         rsp, rbp                            ; epilog
+    pop         rbp
+    ret
+
+
+; void sha1_final(HMAC_SHA1_CTX *ctx, uint8_t md[static 0x14]);
+;
+; CONST:
+; rdi
+align 0x10
+hmac_sha1_final:
+    endbr64                                         ; CET
+    mov         r10, rsi                            ; save md
+    lea         rsi, [rdi + sha1_CTX.blk]           ; &(ctx->blk)
+    mov         eax, 0x54                           ; 0x54
+    vmovdqu     xmm10, [rdi + hmac_sha1_CTX.ovar]   ; load H(opad ^ key) working variables
+    vmovd       xmm11, [rdi + hmac_sha1_CTX.ovar + 0x10]
+    vpinsrd     xmm11, eax, 2                       ; set length
+    call        sha1_final_with_state               ; call(ctx, &(ctx->blk))
+    mov         rsi, r10                            ; md
+    mov         eax, 0x40                           ; 0x40
+    vmovdqa     xmm10, [rdi + hmac_sha1_CTX.ivar]   ; load H(ipad ^ key) working variables
+    vmovd       xmm11, [rdi + hmac_sha1_CTX.ivar + 0x10]
+    vpinsrd     xmm11, eax, 2                       ; set length
+    jmp         sha1_final_with_state               ; call(ctx, &md)
+
+
+; bool *(HMAC_SHA1_CTX *ctx, const uint8_t *msg, uint64_t msg_len);
+;
+; CONST:
+; rdi
+; xmm11..
+align 0x10
+hmac_sha1_update:
+    endbr64                                         ; CET
+    jmp         sha1_update                         ; jump(ctx->sha_CTX, msg, msg_len)
+
+
+; bool *(HMAC_SHA1_CTX *ctx);
+;
+; CONST:
+; rdi, rsi, rdx, rcx, r8, r9
+; rax
+; xmm.. except xmm6
+;
+; OUT:
+; xmm6: ZERO
+align 0x10
+hmac_sha1_wipe:
+    endbr64                                         ; CET
+    vpxor       xmm6, xmm6                          ; zero
+    vmovdqa     [rdi], xmm6
+    vmovdqa     [rdi + 0x10], xmm6
+    vmovdqa     [rdi + 0x20], xmm6
+    vmovdqa     [rdi + 0x30], xmm6
+    vmovdqa     [rdi + 0x40], xmm6
+    vmovdqa     [rdi + 0x50], xmm6
+    vmovdqa     [rdi + 0x60], xmm6
+    vmovdqa     [rdi + 0x70], xmm6
+    vmovdqa     [rdi + 0x80], xmm6
+    ret

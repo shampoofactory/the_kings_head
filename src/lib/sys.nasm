@@ -5,8 +5,6 @@
         global      sys_write
         global      sys_time
 
-        section     .data align=0x10
-
         section     .text
 
 ; void *(uint32_t status)

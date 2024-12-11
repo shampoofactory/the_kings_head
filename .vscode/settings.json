@@ -2,6 +2,29 @@
     "files.associations": {
         "stdint.h": "c",
         "string.h": "c",
-        "hmac_sha1.h": "c"
-    }
+        "hmac_sha1.h": "c",
+        "typeinfo": "cpp",
+        "bytes.h": "c",
+        "test.h": "c",
+        "stdio.h": "c",
+        "test_aes_ofb.h": "c",
+        "sha1_core.h": "c",
+        "aes_core.h": "c",
+        "basic.h": "c",
+        "sha1_test.h": "c",
+        "hmac_sha1_test.h": "c",
+        "sha1.h": "c",
+        "stdbool.h": "c",
+        "pbkdf2_hmac_sha1_test.h": "c",
+        "pbkdf2_hmac_sha1.h": "c",
+        "stdlib.h": "c",
+        "totp_gen.h": "c",
+        "errno.h": "c",
+        "fcntl.h": "c",
+        "stat.h": "c",
+        "types.h": "c",
+        "features.h": "c",
+        "rsp.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "enabled"
 }

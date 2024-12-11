@@ -2,10 +2,8 @@
 #define BYTES_H_B2C9890FCFF5A808
 
 #include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 
 // Bytes reference.
 typedef struct

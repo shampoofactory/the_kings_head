@@ -3,6 +3,21 @@
 
 #include <stdint.h>
 
-void hmac_sha1(uint8_t hmac[static 20], const uint8_t *k, uint32_t k_len, const uint8_t *m, uint32_t m_len);
+#include "sha1.h"
+
+typedef struct __attribute__((aligned(16)))
+{
+    SHA1_CTX sha1_ctx;
+    uint8_t opad_key[SHA1_MD_LEN];
+    uint8_t ipad_key[SHA1_MD_LEN];
+} HMAC_SHA1_CTX;
+
+void hmac_sha1_init(HMAC_SHA1_CTX *ctx, const uint8_t *key, uint32_t key_len);
+
+bool hmac_sha1_update(HMAC_SHA1_CTX *ctx, const uint8_t *msg, uint64_t msg_len);
+
+void hmac_sha1_final(HMAC_SHA1_CTX *ctx, uint8_t md[static SHA1_MD_LEN]);
+
+void hmac_sha1_wipe(HMAC_SHA1_CTX *ctx);
 
 #endif
