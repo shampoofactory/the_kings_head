@@ -23,6 +23,23 @@ The project was developed and tested on an Ubuntu 24-04 box.
 
 The project will NOT work with Windows.
 
+
+## System requirements
+
+System requirements:
+- x86-64 cpu with AVX, AVX2, AES-NI and SHA extensions (the majority of CPUs post 2020).
+- Linux
+
+Libraries:
+- cunit
+- gcc
+- nasm
+
+On Ubuntu:
+```
+$ sudo apt install libcunit1 libcunit1-doc libcunit1-dev nasm build-essential gcc
+```
+
 ## TOTP authenticator usage
 
 The default toy TOTP parameters are:
@@ -92,6 +109,44 @@ Build `totp_foo` with `make`, the executable relative path is `build/bin/`:
 $ make totp
 ```
 
+## Tests
+
+Tests are automatically run during builds, but can be invoked separately:
+```
+$ make test
+...
+Suite: AESOFB
+  Test: AES256_OFB ...passed
+  Test: AES256_OFB_SMALL ...passed
+Suite: SHA1
+  Test: HMAC_SHA1_1 ...passed
+  Test: HMAC_SHA1_2 ...passed
+  Test: HMAC_SHA1_3 ...passed
+  Test: HMAC_SHA1_4 ...passed
+  Test: HMAC_SHA1_5 ...passed
+  Test: HMAC_SHA1_6 ...passed
+  Test: HMAC_SHA1_7 ...passed
+Suite: SHA1
+  Test: PBKDF2_HMAC_SHA1_E ...passed
+  Test: PBKDF2_HMAC_SHA1_0 ...passed
+  Test: PBKDF2_HMAC_SHA1_1 ...passed
+  Test: PBKDF2_HMAC_SHA1_2 ...passed
+  Test: PBKDF2_HMAC_SHA1_3 ...passed
+  Test: PBKDF2_HMAC_SHA1_4 ...passed
+  Test: PBKDF2_HMAC_SHA1_5 ...passed
+  Test: PBKDF2_HMAC_SHA1_6 ...passed
+Suite: SHA1
+  Test: SHA1_S ...passed
+  Test: SHA1_L ...passed
+  Test: SHA1_Permutations ...passed
+Suite: SHA1
+  Test: TOTP_SHA1_1 ...passed
+  Test: TOTP_SHA1_2 ...passed
+  Test: TOTP_SHA1_3 ...passed
+  Test: TOTP_SHA1_4 ...passed
+  Test: TOTP_SHA1_5 ...passed
+  Test: TOTP_SHA1_6 ...passed
+```
 
 ## Parameter block encryption
 
@@ -137,7 +192,7 @@ TAG = HMAC DIGEST
 
 ## X86-64 components
 
-X64-64 (System V ABI) components:
+X86-64 (System V ABI) components:
 - AES256 OFB
 - SHA1
 - HMAC SHA1
@@ -146,7 +201,9 @@ X64-64 (System V ABI) components:
 
 The assembly language components are written in NASM syntax.
 
-The codebase assumes: AVX, AVX2, AES-NI, SHA and ERMSB extensions.
+The x86_64 codebase assumes: AVX, AVX2, AES-NI and SHA extensions.
+
+ERMSB support is desirable, but not essential, as `rep movsb` is used for short memory copies.
 
 
 ## License
